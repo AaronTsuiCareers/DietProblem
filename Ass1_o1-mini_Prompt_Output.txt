@@ -1,0 +1,103 @@
+Create python code to solve the Diet Problem. I want to minimize cost while meeting nutrient constraints. Lowfat yogurt costs $1.89 per bottle and has 115mg Sodium, 170 cals, 20g Protein, 0mcg VitD, 320mg Calcium, 0mg Iron, 430mg Potassium. Proscuitto costs $1.10 per serving and has 546mg Sodium, 70 cals, 9g Protein, 0mcg VitD, 0mg Calcium, 1mg Iron, 0mg Potassium. Tomatoes cost $.99 per serving and has 9mg Sodium, 33 cals, 2g Protein, 0mcg VitD, 18mg Calcium, 0.5mg Iron, 431mg Potassium. Zucchini costs $1.29 per serving and has 26mg Sodium, 55 cals, 4g Protein, 0mcg VitD, 52mg Calcium, 2mg Iron, 843mg Potassium. Salmon costs $4.42 per serving and has 117mg Sodium, 412 cals, 40g Protein, 22mcg VitD, 18mg Calcium, 1mg Iron, 719mg Potassium. I would like to have at most 35,000mg Sodium, at least 14,000 cals, at least 350g Protein, at least 140mcg VitD, at least 9,100mg Calcium, at least 324mg Iron, and at least 32,900mg Potassium. Serving sizes cannot be negative. I would like the exact serving counts to meet all constraints and the minimized cost.
+
+
+
+
+
+This problem can be modeled as a **linear programming (LP) problem**, where the objective is to minimize the cost of the diet while satisfying certain nutrient constraints. We can use Python's `scipy.optimize.linprog` function to solve this.
+
+### Problem breakdown:
+1. **Decision variables**: These are the servings of each food item (Lowfat yogurt, Prosciutto, Tomatoes, Zucchini, and Salmon).
+2. **Objective**: Minimize the total cost, which is calculated as:
+   \[
+   \text{Total Cost} = 1.89 \times (\text{Yogurt servings}) + 1.10 \times (\text{Prosciutto servings}) + 0.99 \times (\text{Tomato servings}) + 1.29 \times (\text{Zucchini servings}) + 4.42 \times (\text{Salmon servings})
+   \]
+3. **Constraints**:
+   - **Sodium**: The total sodium intake must be at most 35,000mg.
+   - **Calories**: The total calories must be at least 14,000 cals.
+   - **Protein**: The total protein must be at least 350g.
+   - **Vitamin D**: The total Vitamin D must be at least 140mcg.
+   - **Calcium**: The total calcium must be at least 9,100mg.
+   - **Iron**: The total iron must be at least 324mg.
+   - **Potassium**: The total potassium must be at least 32,900mg.
+   - **Non-negativity**: Serving sizes must be non-negative.
+
+### Steps to solve:
+- Set up the cost vector.
+- Set up the constraints as inequalities.
+- Use `linprog` to minimize the cost.
+
+Here’s the Python code to solve this problem:
+
+```python
+import numpy as np
+from scipy.optimize import linprog
+
+# Costs per serving for each food item
+costs = np.array([1.89, 1.10, 0.99, 1.29, 4.42])
+
+# Nutrient data for each food item
+# Each column represents (Sodium, Calories, Protein, Vitamin D, Calcium, Iron, Potassium)
+nutrients = np.array([
+    [115, 170, 20, 0, 320, 0, 430],    # Yogurt
+    [546, 70, 9, 0, 0, 1, 0],          # Prosciutto
+    [9, 33, 2, 0, 18, 0.5, 431],       # Tomatoes
+    [26, 55, 4, 0, 52, 2, 843],        # Zucchini
+    [117, 412, 40, 22, 18, 1, 719]     # Salmon
+])
+
+# Nutrient constraints (upper bounds for Sodium, lower bounds for others)
+# Order: Sodium <= 35000, Calories >= 14000, Protein >= 350, VitD >= 140, Calcium >= 9100, Iron >= 324, Potassium >= 32900
+bounds = np.array([
+    [35000, np.inf],  # Sodium upper limit
+    [14000, -np.inf],  # Calories lower limit
+    [350, -np.inf],    # Protein lower limit
+    [140, -np.inf],    # Vitamin D lower limit
+    [9100, -np.inf],   # Calcium lower limit
+    [324, -np.inf],    # Iron lower limit
+    [32900, -np.inf]   # Potassium lower limit
+])
+
+# Define inequality matrices (Ax <= b)
+A = np.vstack([
+    nutrients[0],    # Sodium <= 35000
+    -nutrients[1],   # Calories >= 14000 -> -Calories <= -14000
+    -nutrients[2],   # Protein >= 350
+    -nutrients[3],   # VitD >= 140
+    -nutrients[4],   # Calcium >= 9100
+    -nutrients[5],   # Iron >= 324
+    -nutrients[6]    # Potassium >= 32900
+])
+
+b = np.array([35000, -14000, -350, -140, -9100, -324, -32900])
+
+# Bounds for serving sizes (all servings >= 0)
+x_bounds = [(0, None)] * 5  # Five variables, all non-negative
+
+# Solve the linear program
+res = linprog(costs, A_ub=A, b_ub=b, bounds=x_bounds, method='highs')
+
+# Output the result
+if res.success:
+    servings = res.x
+    print("Optimal servings to minimize cost and meet nutrient constraints:")
+    print(f"Yogurt servings: {servings[0]:.2f}")
+    print(f"Prosciutto servings: {servings[1]:.2f}")
+    print(f"Tomato servings: {servings[2]:.2f}")
+    print(f"Zucchini servings: {servings[3]:.2f}")
+    print(f"Salmon servings: {servings[4]:.2f}")
+    print(f"Minimum total cost: ${res.fun:.2f}")
+else:
+    print("No solution found. Please check the constraints.")
+```
+
+### Explanation:
+- `costs` contains the price per serving for each food item.
+- `nutrients` is a matrix where each row corresponds to the nutrient content of one food item.
+- `A_ub` and `b_ub` represent the inequalities for the nutrient constraints.
+- The bounds are set to ensure that the number of servings is non-negative.
+  
+### Output:
+If a solution exists, it will print the number of servings for each food item to minimize the cost while satisfying the nutrient constraints, as well as the minimum total cost.
+
+Let me know if you'd like me to run this code or clarify any part!
